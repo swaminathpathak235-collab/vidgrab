@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VidGrab — Video Downloader</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+body{min-height:100vh;background:linear-gradient(135deg,#0f0c29,#302b63 50%,#24243e);color:#fff;display:flex;flex-direction:column;align-items:center;padding:20px;overflow-x:hidden}
+.bg{position:fixed;top:-80px;right:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,#7c3aed44,transparent 70%);animation:float 6s ease-in-out infinite;z-index:0}
+.bg2{position:fixed;bottom:-60px;left:-60px;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,#ec489944,transparent 70%);animation:float 8s ease-in-out infinite reverse;z-index:0}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-30px)}}
+.wrap{max-width:480px;width:100%;z-index:1}
+.logo{text-align:center;margin:20px 0 8px}
+.logo .icon{font-size:52px;display:inline-block;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+h1{font-size:34px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#f472b6,#60a5fa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center}
+.tag{text-align:center;color:#94a3b8;font-size:13px;margin-bottom:24px}
+.card{background:rgba(255,255,255,.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.inputbox{position:relative;margin-bottom:14px}
+input{width:100%;padding:15px 45px 15px 16px;border-radius:14px;border:1.5px solid rgba(255,255,255,.15);background:rgba(0,0,0,.3);color:#fff;font-size:14px;outline:none;transition:.3s}
+input:focus{border-color:#a78bfa;box-shadow:0 0 0 3px #a78bfa33}
+input::placeholder{color:#64748b}
+.paste{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#a78bfa;font-size:18px;cursor:pointer;padding:6px}
+.btn{width:100%;padding:14px;border:none;border-radius:14px;font-weight:700;font-size:15px;cursor:pointer;transition:.25s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.97)}
+.scan{background:linear-gradient(90deg,#7c3aed,#a855f7);color:#fff;margin-bottom:6px;box-shadow:0 8px 20px #7c3aed55}
+.scan:hover{filter:brightness(1.15)}
+#result{margin-top:16px;animation:up .4s ease}
+@keyframes up{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+.thumb{width:100%;border-radius:14px;margin-bottom:12px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.title{font-size:14px;color:#e2e8f0;margin-bottom:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dlv{background:linear-gradient(90deg,#16a34a,#22c55e);color:#fff;margin-bottom:10px;box-shadow:0 8px 20px #22c55e44}
+.mp3{background:linear-gradient(90deg,#e11d48,#f43f5e);color:#fff;box-shadow:0 8px 20px #f43f5e44}
+.status{text-align:center;padding:12px;border-radius:12px;margin-top:14px;font-size:13px;display:none;animation:up .3s ease}
+.s-info{background:#3b82f622;color:#93c5fd;border:1px solid #3b82f644}
+.s-ok{background:#22c55e22;color:#86efac;border:1px solid #22c55e44}
+.s-err{background:#ef444422;color:#fca5a5;border:1px solid #ef444444}
+.spinner{display:inline-block;width:16px;height:16px;border:2.5px solid #ffffff44;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-3px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.feats{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;justify-content:center}
+.feat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;font-size:11.5px;color:#cbd5e1}
+footer{text-align:center;color:#475569;font-size:11px;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="bg2"></div>
+<div class="wrap">
+<div class="logo"><span class="icon">⬇️</span></div>
+<h1>VidGrab</h1>
+<p class="tag">YouTube • Instagram • Facebook — MP4 & MP3 Downloader</p>
+<div class="card">
+<div class="inputbox">
+<input id="u" placeholder="Video link paste karo..." autocomplete="off">
+<button class="paste" onclick="pasteIt()" title="Paste">📋</button>
+</div>
+<button class="btn scan" onclick="scan()">🔍 Scan Karo</button>
+<div id="result"></div>
+</div>
+<div id="status" class="status"></div>
+<div class="feats">
+<span class="feat">⚡ Fast Download</span>
+<span class="feat">🎵 MP3 Convert</span>
+<span class="feat">🔒 No Login</span>
+<span class="feat">💸 100% Free</span>
+</div>
+<footer>VidGrab • Made with ❤️</footer>
+</div>
+<script>
+let link='';
+const st=document.getElementById('status');
+function show(msg,cls,spin){
+  st.style.display='block';st.className='status '+cls;
+  st.innerHTML=(spin?'<span class="spinner"></span>':'')+msg;
+}
+async function pasteIt(){
+  try{const t=await navigator.clipboard.readText();document.getElementById('u').value=t;show('📋 Link paste ho gaya — ab Scan dabao','s-info');}catch(e){show('❌ Paste permission nahi mili — khud paste karo','s-err');}
+}
+async function scan(){
+  const u=document.getElementById('u').value.trim();
+  const r=document.getElementById('result');
+  if(!u){show('⚠️ Pehle link paste karo','s-err');return}
+  show('Scan ho raha hai...','s-info',true);r.innerHTML='';
+  try{
+    const x=await fetch('/api/instagram?url='+encodeURIComponent(u));
+    const j=await x.json();
+    if(j.error){show('❌ '+j.error,'s-err');return}
+    link=j.link;show('✅ Video mil gayi! Niche download dabao','s-ok');
+    r.innerHTML='<img class="thumb" src="'+j.thumbnail+'" onerror="this.style.display=\'none\'">'+
+    '<div class="title">'+j.title+'</div>'+
+    '<button class="btn dlv" onclick="dl(0)">⬇️ Download Video (MP4)</button>'+
+    '<button class="btn mp3" onclick="dl(1)">🎵 Convert to MP3</button>';
+  }catch(e){show('❌ Network error — dobara try karo','s-err')}
+}
+async function dl(mp3){
+  if(!link){show('⚠️ Pehle scan karo','s-err');return}
+  if(mp3){show('MP3 ban raha hai — 1-2 min, page band mat karo','s-info',true);
+    location.href='/api/mp3direct?url='+encodeURIComponent(link);return}
+  show('Download shuru — video badi ho toh 2-4 min lagenge, page band mat karo','s-info',true);
+  try{
+    const x=await fetch('/api/download?url='+encodeURIComponent(link));
+    const j=await x.json();
+    if(j.error){show('❌ '+j.error,'s-err');return}
+    show('✅ Ho gaya! File save ho rahi hai...','s-ok');
+    location.href=j.videoUrl;
+  }catch(e){show('❌ Download fail — dobara try karo','s-err')}
+}
+</script>
+</body>
+</html>
