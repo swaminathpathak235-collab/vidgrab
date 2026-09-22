@@ -10,6 +10,7 @@
     "axios": "^1.6.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "instagram-url-direct": "^2.0.7"
+    "instagram-url-direct": "^2.0.7",
+    "youtubei.js": "^18.0.0"
   }
 }
