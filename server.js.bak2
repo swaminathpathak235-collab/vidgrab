@@ -2,32 +2,24 @@ const express = require('express');
 const { Innertube } = require('youtubei.js');
 
 const app = express();
+const ytPromise = Innertube.create();
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
 
-// Har baar fresh session (cache nahi) — 403 block bypass karne ke liye
-async function getAudio(videoId, attempt = 1) {
-  try {
-    const yt = await Innertube.create();
-    const info = await yt.getInfo(videoId);
-    const title = info.basic_info.title;
+async function getAudio(videoId) {
+  const yt = await ytPromise;
+  const info = await yt.getInfo(videoId);
+  const title = info.basic_info.title;
 
-    const formats = info.streaming_data?.adaptive_formats || [];
-    const audio = formats
-      .filter(f => f.mime_type && f.mime_type.startsWith('audio/'))
-      .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+  const formats = info.streaming_data?.adaptive_formats || [];
+  const audio = formats
+    .filter(f => f.mime_type && f.mime_type.startsWith('audio/'))
+    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
 
-    if (!audio) throw new Error('Audio format nahi mila');
-    return { title, url: audio.url };
-  } catch (e) {
-    if (attempt < 3 && /403|429|status code/.test(e.message)) {
-      await new Promise(r => setTimeout(r, 2000));
-      return getAudio(videoId, attempt + 1);
-    }
-    throw e;
-  }
+  if (!audio) throw new Error('Audio format nahi mila');
+  return { title, url: audio.url };
 }
 
 function extractVideoId(link) {
@@ -35,8 +27,11 @@ function extractVideoId(link) {
   return m ? m[1] : null;
 }
 
-app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
+});
 
+// info route (frontend yahi call karta hai)
 app.get('/api/info', async (req, res) => {
   const videoId = extractVideoId(req.query.url || req.query.link || '');
   if (!videoId) return res.status(400).json({ error: 'Invalid YouTube link' });
@@ -48,6 +43,7 @@ app.get('/api/info', async (req, res) => {
   }
 });
 
+// download routes (GET + POST, dono naam supported)
 async function handleDownload(req, res) {
   const link = req.query.url || req.query.link || req.body?.link || req.body?.url;
   const videoId = extractVideoId(link);
@@ -63,8 +59,6 @@ app.get('/api/download', handleDownload);
 app.post('/api/download', handleDownload);
 app.get('/download', handleDownload);
 app.post('/download', handleDownload);
-
-app.use((req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Server running on port ' + PORT));
