@@ -1,5 +1,4 @@
 const express = require('express');
-const { Innertube } = require('youtubei.js');
 
 const app = express();
 
@@ -7,27 +6,29 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
 
-// Har baar fresh session (cache nahi) — 403 block bypass karne ke liye
-async function getAudio(videoId, attempt = 1) {
-  try {
-    const yt = await Innertube.create();
-    const info = await yt.getInfo(videoId);
-    const title = info.basic_info.title;
+const COBALT_API = "https://api.cobalt.tools/";
 
-    const formats = info.streaming_data?.adaptive_formats || [];
-    const audio = formats
-      .filter(f => f.mime_type && f.mime_type.startsWith('audio/'))
-      .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+async function getVideo(youtubeUrl) {
+  const res = await fetch(COBALT_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: JSON.stringify({
+      url: youtubeUrl,
+      videoQuality: "720",
+      filenameStyle: "basic"
+    })
+  });
 
-    if (!audio) throw new Error('Audio format nahi mila');
-    return { title, url: audio.url };
-  } catch (e) {
-    if (attempt < 3 && /403|429|status code/.test(e.message)) {
-      await new Promise(r => setTimeout(r, 2000));
-      return getAudio(videoId, attempt + 1);
-    }
-    throw e;
+  const data = await res.json();
+
+  if (data.status === "error" || !data.url) {
+    throw new Error(data.text?.text || data.text || "Cobalt error");
   }
+
+  return data; // data.url = download link, data.filename = title
 }
 
 function extractVideoId(link) {
@@ -38,25 +39,23 @@ function extractVideoId(link) {
 app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
 
 app.get('/api/info', async (req, res) => {
-  const videoId = extractVideoId(req.query.url || req.query.link || '');
-  if (!videoId) return res.status(400).json({ error: 'Invalid YouTube link' });
+  const link = req.query.url || req.query.link || '';
+  if (!extractVideoId(link)) return res.status(400).json({ error: 'Invalid YouTube link' });
   try {
-    const { title } = await getAudio(videoId);
-    res.json({ title, videoId });
+    const data = await getVideo(link);
+    res.json({ title: data.filename || 'Video ready!', videoId: extractVideoId(link) });
   } catch (e) {
-    res.status(500).json({ error: e.message.slice(0, 150) });
+    res.status(500).json({ error: String(e.message).slice(0, 150) });
   }
 });
 
 async function handleDownload(req, res) {
   const link = req.query.url || req.query.link || req.body?.link || req.body?.url;
-  const videoId = extractVideoId(link);
-  if (!videoId) return res.status(400).send('Invalid YouTube link');
-  try {
-    const { url } = await getAudio(videoId);
-    res.redirect(url);
+  if (!extractVideoId(link)) return res.status(400).send('Invalid YouTube link');
+  try = await getVideo(link);
+    res.redirect(data.url);
   } catch (e) {
-    res.status(500).send('Error: ' + e.message.slice(0, 150));
+    res.status(500).send('Error: ' + String(e.message).slice(0, 150));
   }
 }
 app.get('/api/download', handleDownload);
