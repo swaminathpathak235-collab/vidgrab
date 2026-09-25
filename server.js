@@ -13,7 +13,7 @@ async function getVideo(youtubeUrl) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      "Accept": "application/json"
     },
     body: JSON.stringify({
       url: youtubeUrl,
@@ -28,7 +28,7 @@ async function getVideo(youtubeUrl) {
     throw new Error(data.text?.text || data.text || "Cobalt error");
   }
 
-  return data; // data.url = download link, data.filename = title
+  return data;
 }
 
 function extractVideoId(link) {
@@ -40,7 +40,7 @@ app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
 
 app.get('/api/info', async (req, res) => {
   const link = req.query.url || req.query.link || '';
-  if (!extractVideoId(link)) return res.status(400).json({ error: 'Invalid YouTube link' });
+  if (!extractVideoId.status(400).json({ error: 'Invalid YouTube link' });
   try {
     const data = await getVideo(link);
     res.json({ title: data.filename || 'Video ready!', videoId: extractVideoId(link) });
@@ -52,12 +52,14 @@ app.get('/api/info', async (req, res) => {
 async function handleDownload(req, res) {
   const link = req.query.url || req.query.link || req.body?.link || req.body?.url;
   if (!extractVideoId(link)) return res.status(400).send('Invalid YouTube link');
-  try = await getVideo(link);
+  try {
+    const data = await getVideo(link);
     res.redirect(data.url);
   } catch (e) {
     res.status(500).send('Error: ' + String(e.message).slice(0, 150));
   }
 }
+
 app.get('/api/download', handleDownload);
 app.post('/api/download', handleDownload);
 app.get('/download', handleDownload);
