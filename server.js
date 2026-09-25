@@ -40,7 +40,7 @@ app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
 
 app.get('/api/info', async (req, res) => {
   const link = req.query.url || req.query.link || '';
-  if (!extractVideoId.status(400).json({ error: 'Invalid YouTube link' });
+  if (!extractVideoId(link)) return res.status(400).json({ error: 'Invalid YouTube link' });
   try {
     const data = await getVideo(link);
     res.json({ title: data.filename || 'Video ready!', videoId: extractVideoId(link) });
